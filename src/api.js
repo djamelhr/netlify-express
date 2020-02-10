@@ -1,29 +1,35 @@
+const express  = require('express');
 const chromium = require('chrome-aws-lambda');
+const serverless = require('serverless-http');
 
-exports.handler = async (event, context) => {
-  let result = null;
-  let browser = null;
+const app = express();
 
-  try {
-    browser = await chromium.puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
-    });
+const router = express.Router();
 
-    let page = await browser.newPage();
+router.get('/',(req,res)=> {
+    (async () =>{
 
-    await page.goto(event.url || 'https://example.com');
+        let result = null;
+        let browser = null;
 
-    result = await page.title();
-  } catch (error) {
-    return context.fail(error);
-  } finally {
-    if (browser !== null) {
-      await browser.close();
-    }
-  }
+         browser = await chromium.puppeteer.launch({
+            executablePath: await chromium.executablePath,
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            headless: chromium.headless,
+        });
+      
+          let page = await browser.newPage();
+      
+          await page.goto(event.url || 'https://example.com');
+      
+          result = await page.title();
+          
+          await browser.close();
+          res.send(result);
+    })();      
+});
 
-  return context.succeed(result);
-};
+app.use('/.netlify/functions/api',router);
+module.exports.handler= serverless(app); 
+
